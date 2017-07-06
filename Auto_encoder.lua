@@ -2,6 +2,7 @@ require 'torch';
 require 'nn';
 require 'gnuplot';
 require 'optim';
+require 'image'
 
 --loading Data
 DataPath = '/home/apoorva/Documents/AutoEncoders/mnist/'
@@ -45,7 +46,6 @@ for j=1,10000 do
 	x= torch.zeros(10)
 	x[test_label_temp[j] + 1]= 1
 	test_label[j]= x
-
 end
 
 --Data loaded 
@@ -67,7 +67,7 @@ loss= nn.MSECriterion()
 
 
 --training an autoencoder
-for epochs=1,20 do
+for epochs=1,30 do
 
 	print("no. of epochs	".. epochs)
 	Weight, Gradients = net:getParameters()
@@ -80,7 +80,7 @@ for epochs=1,20 do
 			Gradients:zero()
 
 			input= training_data[n]
-			local output= net:forward(input)
+			output= net:forward(input)
 			current_loss = loss:forward(output, training_data[n])
 			local d_loss = loss:backward(output, training_data[n])
 			net:backward(input,d_loss)
@@ -89,7 +89,7 @@ for epochs=1,20 do
 		end
 
 		optimState = {
-    	learningRate = 0.01,
+    		learningRate = 0.01,
     	}
 		
 		optim.sgd(feval, Weight, optim_state)			
@@ -98,6 +98,13 @@ for epochs=1,20 do
 
 	end	
 
-	print("loss for this epoch" ..  total_loss)
+	total_loss = total_loss/60000
+
+	input_image = torch.reshape(input,28,28)
+	output_image = torch.reshape(output,28,28)
+
+	image.save('Results_sgd/'.. epochs ..'_sdg.png', output_image)
+	print("loss for this epochs		" ..  total_loss)
 
 end
+image.save('actual.png', input_image)
