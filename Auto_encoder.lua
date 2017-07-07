@@ -1,4 +1,4 @@
-require 'torch';
+require 'torch'; 
 require 'nn';
 require 'gnuplot';
 require 'optim';
@@ -65,46 +65,65 @@ net:add(nn.ReLU())
 
 loss= nn.MSECriterion()
 
+function visualising_loss(Criterion, name_of_criterion)
 
---training an autoencoder
-for epochs=1,30 do
+	loss_temp = torch.Tensor(30)
 
-	print("no. of epochs	".. epochs)
-	Weight, Gradients = net:getParameters()
-	total_loss= 0
+	for epochs=1,30 do
+	
+		print("no. of epochs	".. epochs)
+		Weight, Gradients = net:getParameters()
+		total_loss= 0
+	
+		for n= 1,60000 do
+	
+			function feval(Weight)
+	
+				Gradients:zero()
+	
+				input= training_data[n]
+				output= net:forward(input)
+				current_loss = loss:forward(output, training_data[n])
+				local d_loss = Criterion:backward(output, training_data[n])
+				net:backward(input,d_loss)
+	
+				return current_loss, Gradients
+			end
+	
+			optimState = {
+				learningRate = 0.01,
+			}
+			
+			optim.sgd(feval, Weight, optim_state)			
+	
+			total_loss= total_loss + current_loss
+	
+		end	
+		total_loss = total_loss/60000
 
-	for n= 1,60000 do
+		loss_temp[epochs]= total_loss
+	
+		input_image = torch.reshape(input,28,28)
+		output_image = torch.reshape(output,28,28)
+	
+		image.save('Results_'.. name_of_criterion .. "/".. epochs ..'_.png', output_image)
+		print("loss for this epochs		" ..  total_loss)
+	
+	end
 
-		function feval(Weight)
-
-			Gradients:zero()
-
-			input= training_data[n]
-			output= net:forward(input)
-			current_loss = loss:forward(output, training_data[n])
-			local d_loss = loss:backward(output, training_data[n])
-			net:backward(input,d_loss)
-
-			return current_loss, Gradients
-		end
-
-		optimState = {
-    		learningRate = 0.01,
-    	}
-		
-		optim.sgd(feval, Weight, optim_state)			
-
-		total_loss= total_loss + current_loss
-
-	end	
-
-	total_loss = total_loss/60000
-
-	input_image = torch.reshape(input,28,28)
-	output_image = torch.reshape(output,28,28)
-
-	image.save('Results_sgd/'.. epochs ..'_sdg.png', output_image)
-	print("loss for this epochs		" ..  total_loss)
+return loss_temp
 
 end
+
+
+loss_tensor = torch.Tensor(3,30)
+loss_tensor[{{1},{}}]= visualising_loss(nn.AbsCriterion(), 'abs')
+loss_tensor[{{2},{}}]= visualising_loss(nn.MSECriterion(), 'mse')
+loss_tensor[{{3},{}}]= visualising_loss(nn.SmoothL1Criterion(), 'smoothabs')
+
 image.save('actual.png', input_image)
+
+gnuplot.plot({'Abs',loss_tensor[{{1},{}}]},{'AbsSmooth',loss_tensor[{{2},{}}]},{'MSE',loss_tensor[{{3},{}}]})
+
+	
+
