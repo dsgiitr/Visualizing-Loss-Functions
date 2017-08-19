@@ -50,24 +50,29 @@ end
 
 --Data loaded 
 
+
+torch.manualSeed(0) 
+
 --building an autoencoder
-net = nn:Sequential()
+function create_encoder()
+	net = nn:Sequential()
 
-net:add(nn.Linear(784,128))
-net:add(nn.ReLU())
-net:add(nn.Linear(128,32))
-net:add(nn.ReLU())
+	net:add(nn.Linear(784,128))
+	net:add(nn.ReLU())
+	net:add(nn.Linear(128,32))
+	net:add(nn.ReLU())
+	
+	net:add(nn.Linear(32,128))
+	net:add(nn.ReLU())
+	net:add(nn.Linear(128,784))
+	net:add(nn.ReLU())
+end
 
-net:add(nn.Linear(32,128))
-net:add(nn.ReLU())
-net:add(nn.Linear(128,784))
-net:add(nn.ReLU())
-
-loss= nn.MSECriterion()
 
 function visualising_loss(Criterion, name_of_criterion)
 
 	loss_temp = torch.Tensor(30)
+	loss= nn.MSECriterion()
 
 	for epochs=1,30 do
 	
@@ -106,24 +111,25 @@ function visualising_loss(Criterion, name_of_criterion)
 		input_image = torch.reshape(input,28,28)
 		output_image = torch.reshape(output,28,28)
 	
-		image.save('Results_'.. name_of_criterion .. "/".. epochs ..'_.png', output_image)
+		image.save('Results_'.. name_of_criterion .. "/".. epochs ..'.png', output_image)
 		print("loss for this epochs		" ..  total_loss)
 	
 	end
 
-return loss_temp
+	return loss_temp
 
 end
 
 
 loss_tensor = torch.Tensor(3,30)
+
+create_encoder()
 loss_tensor[{{1},{}}]= visualising_loss(nn.AbsCriterion(), 'abs')
+create_encoder()
 loss_tensor[{{2},{}}]= visualising_loss(nn.MSECriterion(), 'mse')
+create_encoder()
 loss_tensor[{{3},{}}]= visualising_loss(nn.SmoothL1Criterion(), 'smoothabs')
 
 image.save('actual.png', input_image)
 
 gnuplot.plot({'Abs',loss_tensor[{{1},{}}]},{'AbsSmooth',loss_tensor[{{2},{}}]},{'MSE',loss_tensor[{{3},{}}]})
-
-	
-
